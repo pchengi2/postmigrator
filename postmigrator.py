@@ -39,7 +39,8 @@ def reformat_fields(line,frontmatter,filename,security):
 		repl='title: '+val+'\n'
 		repl=re.sub('[\'\"]','', repl)
 		frontmatter+=repl
-		filename+=re.sub('[!@#$/*?|;,\t \'\"]','-',val.lstrip())+'.md'
+		filename+=re.sub('[!@#$/*?|;,\t \'\"]','-',val.lstrip())
+		filename=re.sub('[.]','',filename)+'.md'
 		return(0,frontmatter,filename,security)
 
 	if key == 'Mood':
@@ -57,11 +58,11 @@ flist=list()
 for dirs in  ['output/custom','output/friends','output/private']:
 	if not os.path.exists(dirs):
 		os.makedirs(dirs)
-exclude=set(['output','backup'])
+exclude=set(['output','backup','.git'])
 for path, subdirs, files in os.walk('.'):
 	subdirs[:] = [d for d in subdirs if d not in exclude]
 	for name in files:
-		if name == 'postmigrator.py':
+		if name == 'postmigrator.py' or name == 'README.md' or name == '.gitignore':
 			continue
 		flist.append(os.path.join(path,name))
 
