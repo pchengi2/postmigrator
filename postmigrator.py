@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-import os,re,datetime,sys
+import os,re,datetime,sys,argparse
 
 
 def reformat_fields(line,frontmatter,filename,security):
-	
+	global retain_tags
 	test=line.split(' ')[0]
 	if test.find(':') == -1:
 		return(1,frontmatter,filename,security)
@@ -31,9 +31,12 @@ def reformat_fields(line,frontmatter,filename,security):
 			cleaned=re.sub('[!@#$ \']','-', rtag.lstrip())
 			repl+=cleaned
 			repl+=','
-		repl+=']\n'
-		repl='tags: [archived-posts]\n'
-		frontmatter+=repl
+		if retain_tags == 1:
+			repl+='archived-posts]\n'
+			frontmatter+=repl
+		else:
+			repl='tags: [archived-posts]\n'
+			frontmatter+=repl
 		return(0,frontmatter,filename,security)
 	if key == 'Subject':
 		repl='title: '+val+'\n'
@@ -45,6 +48,12 @@ def reformat_fields(line,frontmatter,filename,security):
 
 	if key == 'Mood':
 		repl='mood: '+val+'\n'
+		frontmatter+=repl
+		return(0,frontmatter,filename,security)
+	
+	if key == 'Music':
+		repl='music: '+val+'\n'
+		frontmatter+=repl
 		return(0,frontmatter,filename,security)
 
 	if key == 'Security':
@@ -54,6 +63,13 @@ def reformat_fields(line,frontmatter,filename,security):
 	return(0,frontmatter,filename,security)
 
 flist=list()
+aparser=argparse.ArgumentParser()
+aparser.add_argument('--retain-tags',type=str,nargs='?',default='none')
+args=aparser.parse_args()
+if args.retain_tags != 'none':
+	retain_tags=1
+else:
+	retain_tags=0
 
 for dirs in  ['output/custom','output/friends','output/private']:
 	if not os.path.exists(dirs):
@@ -62,7 +78,7 @@ exclude=set(['output','backup','.git'])
 for path, subdirs, files in os.walk('.'):
 	subdirs[:] = [d for d in subdirs if d not in exclude]
 	for name in files:
-		if name == 'postmigrator.py' or name == 'README.md' or name == '.gitignore':
+		if name == 'postmigrator.py' or name == 'README.md' or name == '.gitignore' or name == 'addl_metadata':
 			continue
 		flist.append(os.path.join(path,name))
 
@@ -79,8 +95,15 @@ for fn in flist:
 			retval,frontmatter,filename,security=reformat_fields(line,frontmatter,filename,security)
 			if retval == 1:
 				foundall=1
-				frontmatter+='categories: archives\n'
-				frontmatter+='permalink: /:categories/:year/:month/:day/:title/\n'
+				try:
+					with open('addl_metadata','r') as f:
+						addl_lines=f.readlines()
+						for af in addl_lines:
+							if af.find('#') != -1:
+								continue
+							frontmatter+=af
+				except:
+					silent=1
 				outp=frontmatter
 				outp+='---\n'
 				print outp
@@ -96,4 +119,3 @@ for fn in flist:
 		os.makedirs(security)
 	with open(finalfn,'w') as f:
 		f.write(outp)
-	
